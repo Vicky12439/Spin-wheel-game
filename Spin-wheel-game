@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Spin Wheel Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        #wheel {
+            position: relative;
+        }
+
+        #canvas {
+            border: 2px solid #000;
+            display: block;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="wheel">
+        <canvas id="canvas" width="500" height="500"></canvas>
+        <button id="spin" onclick="spinWheel()">Spin</button>
+    </div>
+    <div id="result"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const resultDiv = document.getElementById('result');
+        let spins = 0;
+        const segments = ['Try Again', 'Small Prize', 'Medium Prize', 'Grand Prize'];
+        const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
+
+        const renderer = new THREE.WebGLRenderer({ canvas });
+        renderer.setSize(500, 500);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.z = 700;
+
+        const geometry = new THREE.CylinderGeometry(250, 250, 20, 64, 1, true, 0, 2 * Math.PI);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, vertexColors: true });
+
+        const faceColors = [];
+        for (let i = 0; i < segments.length; i++) {
+            const color = new THREE.Color(colors[i]);
+            for (let j = 0; j < 4; j++) {
+                faceColors.push(color.r, color.g, color.b);
+            }
+        }
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(faceColors, 3));
+        const wheel = new THREE.Mesh(geometry, material);
+        scene.add(wheel);
+
+        function spinWheel() {
+            if (spins >= 2) {
+                resultDiv.innerHTML = 'Congratulations! You won the Grand Prize!';
+                return;
+            }
+            spins++;
+            const randomSpin = Math.random() * Math.PI * 2;
+            wheel.rotation.z = 0;
+
+            const targetRotation = wheel.rotation.z + randomSpin + (2 * Math.PI * 5); // Spin 5 full times
+            const spinDuration = 2000; // Spin duration in milliseconds
+
+            let start = null;
+            function animate(time) {
+                if (!start) start = time;
+                const elapsed = time - start;
+
+                if (elapsed < spinDuration) {
+                    wheel.rotation.z = elapsed / spinDuration * targetRotation;
+                    requestAnimationFrame(animate);
+                } else {
+                    wheel.rotation.z = targetRotation;
+                    const segmentIndex = Math.floor(((2 * Math.PI - (targetRotation % (2 * Math.PI))) / (2 * Math.PI)) * segments.length);
+                    resultDiv.innerHTML = `You landed on: ${segments[segmentIndex]}`;
+                    if (spins === 2) {
+                        resultDiv.innerHTML = 'Congratulations! You won the Grand Prize!';
+                    }
+                }
+                renderer.render(scene, camera);
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function render() {
+            requestAnimationFrame(render);
+            renderer.render(scene, camera);
+        }
+
+        render();
+    </script>
+</body>
+</html>
